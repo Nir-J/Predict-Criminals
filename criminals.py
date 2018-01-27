@@ -2,6 +2,7 @@ import tensorflow as tf
 import numpy as np
 import pandas as pd
 from sklearn.metrics import confusion_matrix
+import matplotlib.pyplot as plt
 
 # Parameters
 training_epochs = 30
@@ -14,7 +15,7 @@ n_hidden_2 = 200 # 2nd layer number of neurons
 n_hidden_3 = 50 # 3rd layer number of neurons
 n_hidden_4 = 10 # 4th layer number of neurons
 n_features = 70 # Feature columns
-n_output = 1 #Output clssification
+n_output = 1 # Output clssification
 
 ########### Defining tensorflow computational graph ###########
 
@@ -76,8 +77,6 @@ def duplicate(df):
 	rows = df['Criminal'] == 1
 	# Creating a dataframe with all the criminal records
 	df_try = df[rows]
-	print(df_try)
-	print(df)
 	df = df.append([df_try]*12)
 	return df
 
@@ -103,15 +102,37 @@ def get_accuracy(df):
 	tn, fp, fn, tp = confusion_matrix(labels, preds).ravel()
 	print("TN: {}, FP: {}, FN: {}, TP: {}".format(tn, fp, fn, tp))
 
-
-#def training_graph(train, validate):
-#	""" Plots graph of training vs validate """
-# Will add later
+	return result*100
 
 
+def plot_graph(train, validate):
+	""" Plots graph of training vs validate """
+	fig = plt.figure()
+	ax = fig.add_subplot(1, 1, 1)
 
+	#This is just numer of epochs
+	x = np.arange(len(train))
+	# Major and minor for y axis for more detail
+	y_major = np.arange(85, 95, 1)
+	y_minor = np.arange(85, 95, 0.2)
+	#For plotting two graphs
+	y1 = np.array(train)
+	y2 = np.array(validate)
+	# Fixing x and y axis
+	ax.set_xticks(x)
+	ax.set_yticks(y_major)
+	ax.set_yticks(y_minor, minor=True)
+	# Setting grid lines
+	ax.grid(which="both")
+	ax.grid(which='minor', alpha=0.2)
+	ax.grid(which='major', alpha=0.5)
+	# Labels
+	plt.xlabel('Epochs', fontsize=12)
+	plt.ylabel('Accuracy', fontsize=12)
 
-
+	ax.plot(x, y1)
+	ax.plot(x, y2)
+	plt.show()
 
 def prepare_result(df):
 	""" Function to prepare CSV of the testing result """
@@ -147,6 +168,10 @@ def train_and_test_model(traindata, testdata):
 	# Picking a same size random subset of training to compare validation results with training
 	train = training.iloc[ 0:8382, :]
 	
+	# Lists to save progress for plotting graph
+	train_acc = []
+	validate_acc = []
+
 	with tf.Session() as sess:
 		sess.run(init)
 
@@ -174,12 +199,13 @@ def train_and_test_model(traindata, testdata):
 			# Display logs per epoch step
 			print("Epoch: {:04} | Cost={:.9f}".format(epoch+1, avg_cost))
 			print("Validation", end=" ")
-			get_accuracy(validate)
+			validate_acc.append(get_accuracy(validate))
 			print("Training", end=" ")
-			get_accuracy(train)
+			train_acc.append(get_accuracy(train))
 			print()
 		print("Training complete")
 		prepare_result(testdata)
+	plot_graph(train_acc, validate_acc)
 
 
 # Training the model after shuffling the data.
